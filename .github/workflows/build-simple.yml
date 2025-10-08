@@ -59,7 +59,11 @@ jobs:
     - name: Create necessary directories
       run: |
         cd landeployer-backend
-        mkdir -p data logs storage
+        if [ "${{ matrix.platform }}" = "windows" ]; then
+          mkdir data logs storage
+        else
+          mkdir -p data logs storage
+        fi
 
     - name: Create PyInstaller spec
       run: |
