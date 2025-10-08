@@ -41,6 +41,11 @@ jobs:
         cd landeployer-ui
         npm run build
 
+    - name: Create necessary directories
+      run: |
+        cd landeployer-backend
+        mkdir -p data logs storage
+
     - name: Create PyInstaller spec
       run: |
         cd landeployer-backend
