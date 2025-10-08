@@ -1,1 +1,0 @@
-import{r as t}from"./request-Czxk6xGR.js";function o(e){return t({url:"/deploy/check",method:"post",data:e})}function r(e){return t({url:"/deploy/task",method:"post",data:e})}function a(){return t({url:"/deploy/tasks",method:"get"})}function n(e){return t({url:`/deploy/tasks/${e}`,method:"get"})}export{r as a,n as b,o as c,a as g};
