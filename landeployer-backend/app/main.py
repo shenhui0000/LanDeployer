@@ -40,9 +40,10 @@ app.include_router(roles.router, prefix="/api/roles", tags=["角色管理"])
 app.include_router(deploy.router, prefix="/api/deploy", tags=["部署管理"])
 
 # 静态文件服务（前端）
-static_dir = os.path.join(os.path.dirname(__file__), "static")
+# 静态文件在 landeployer-backend/static 目录
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
     
     @app.get("/")
     async def read_root():
@@ -53,7 +54,7 @@ if os.path.exists(static_dir):
 else:
     @app.get("/")
     async def read_root():
-        return {"message": "LanDeployer API", "version": "1.0.0"}
+        return {"message": "LanDeployer API", "version": "1.0.0", "static_dir": static_dir}
 
 @app.on_event("startup")
 async def startup_event():

@@ -3,7 +3,7 @@ Pydantic模型（数据验证和序列化）
 """
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 
 # ============ Host ============
 class HostBase(BaseModel):
@@ -84,7 +84,7 @@ class ResponseModel(BaseModel):
     """统一响应模型"""
     code: int = 200
     message: str = "操作成功"
-    data: Optional[any] = None
+    data: Optional[Any] = None
     timestamp: int = int(datetime.now().timestamp() * 1000)
 
 class HostTestResult(BaseModel):

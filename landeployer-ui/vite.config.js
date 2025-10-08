@@ -19,7 +19,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: '../landeployer-server/src/main/resources/static',
+    outDir: '../landeployer-backend/static',
     emptyOutDir: true
   }
 })

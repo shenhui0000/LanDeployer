@@ -13,45 +13,45 @@ from app.services.ssh_service import SSHService
 
 router = APIRouter()
 
-@router.get("/", response_model=ResponseModel)
+@router.get("/", response_model=List[Host])
 async def get_hosts(db: Session = Depends(get_db)):
     """查询所有主机"""
     hosts = db.query(HostModel).all()
-    return ResponseModel(data=hosts)
+    return [Host.model_validate(host) for host in hosts]
 
-@router.get("/{host_id}", response_model=ResponseModel)
+@router.get("/{host_id}", response_model=Host)
 async def get_host(host_id: int, db: Session = Depends(get_db)):
     """根据ID查询主机"""
     host = db.query(HostModel).filter(HostModel.id == host_id).first()
     if not host:
         raise HTTPException(status_code=404, detail="主机不存在")
-    return ResponseModel(data=host)
+    return Host.model_validate(host)
 
-@router.post("/", response_model=ResponseModel)
+@router.post("/", response_model=Host)
 async def create_host(host: HostCreate, db: Session = Depends(get_db)):
     """创建主机"""
-    db_host = HostModel(**host.dict())
+    db_host = HostModel(**host.model_dump())
     db.add(db_host)
     db.commit()
     db.refresh(db_host)
-    return ResponseModel(message="保存成功", data=db_host)
+    return Host.model_validate(db_host)
 
-@router.put("/{host_id}", response_model=ResponseModel)
+@router.put("/{host_id}", response_model=Host)
 async def update_host(host_id: int, host: HostCreate, db: Session = Depends(get_db)):
     """更新主机"""
     db_host = db.query(HostModel).filter(HostModel.id == host_id).first()
     if not db_host:
         raise HTTPException(status_code=404, detail="主机不存在")
     
-    for key, value in host.dict().items():
+    for key, value in host.model_dump().items():
         setattr(db_host, key, value)
     
     db_host.update_time = datetime.now()
     db.commit()
     db.refresh(db_host)
-    return ResponseModel(message="更新成功", data=db_host)
+    return Host.model_validate(db_host)
 
-@router.delete("/{host_id}", response_model=ResponseModel)
+@router.delete("/{host_id}")
 async def delete_host(host_id: int, db: Session = Depends(get_db)):
     """删除主机"""
     db_host = db.query(HostModel).filter(HostModel.id == host_id).first()
@@ -60,15 +60,15 @@ async def delete_host(host_id: int, db: Session = Depends(get_db)):
     
     db.delete(db_host)
     db.commit()
-    return ResponseModel(message="删除成功")
+    return {"message": "删除成功"}
 
-@router.post("/test", response_model=ResponseModel)
+@router.post("/test", response_model=HostTestResult)
 async def test_connection(host: HostCreate, db: Session = Depends(get_db)):
     """测试连接"""
     import time
     start_time = time.time()
     
-    host_info = host.dict()
+    host_info = host.model_dump()
     success, message, os_info, docker_version = SSHService.test_connection(host_info)
     
     response_time = int((time.time() - start_time) * 1000)
@@ -90,11 +90,11 @@ async def test_connection(host: HostCreate, db: Session = Depends(get_db)):
         response_time=response_time
     )
     
-    return ResponseModel(data=result)
+    return result
 
-@router.get("/group/{group_name}", response_model=ResponseModel)
+@router.get("/group/{group_name}", response_model=List[Host])
 async def get_hosts_by_group(group_name: str, db: Session = Depends(get_db)):
     """根据分组查询主机"""
     hosts = db.query(HostModel).filter(HostModel.group_name == group_name).all()
-    return ResponseModel(data=hosts)
+    return [Host.model_validate(host) for host in hosts]
 
