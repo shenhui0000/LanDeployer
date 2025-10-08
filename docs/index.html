@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="LanDeployer - 离线内网一键部署 Docker 服务的强大工具">
+    <title>LanDeployer - 离线内网部署工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 150px 0 100px;
+            text-align: center;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Features Section */
+        .features {
+            background: white;
+            padding: 80px 0;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #333;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            padding: 2rem;
+            border-radius: 10px;
+            background: #f8f9fa;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+
+        /* Services Section */
+        .services {
+            background: #f8f9fa;
+            padding: 80px 0;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .service-item {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .service-item:hover {
+            border-color: #667eea;
+        }
+
+        .service-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Download Section */
+        .download {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .download-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .download-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .download-card h3 {
+            margin-bottom: 1rem;
+        }
+
+        .download-card .size {
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Footer */
+        footer {
+            background: #2d3748;
+            color: white;
+            padding: 3rem 0 1rem;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h4 {
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section a {
+            color: white;
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .footer-section a:hover {
+            opacity: 1;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0.6;
+        }
+
+        /* Code Block */
+        pre {
+            background: #2d3748;
+            color: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        code {
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.2rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo">🚀 LanDeployer</a>
+                <nav class="nav-links">
+                    <a href="#features">功能特性</a>
+                    <a href="#services">支持服务</a>
+                    <a href="#download">下载</a>
+                    <a href="https://github.com/shenhui0000/LanDeployer" target="_blank">GitHub</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>离线内网部署神器</h1>
+            <p>一键部署 Docker 服务，让内网环境部署变得简单高效</p>
+            <div class="cta-buttons">
+                <a href="https://github.com/shenhui0000/LanDeployer/releases" class="btn btn-primary">立即下载</a>
+                <a href="https://github.com/shenhui0000/LanDeployer" class="btn btn-secondary">查看源码</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">核心功能</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>一键部署</h3>
+                    <p>通过友好的 Web UI 界面，选择目标服务器和服务，一键完成部署，无需复杂配置</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔌</div>
+                    <h3>离线环境</h3>
+                    <p>专为离线内网环境设计，提前准备好 Docker 镜像，无需互联网连接即可部署</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💻</div>
+                    <h3>美观界面</h3>
+                    <p>基于 Vue 3 + Element Plus 构建的现代化 UI，操作简单直观，体验流畅</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔧</div>
+                    <h3>SSH 远程</h3>
+                    <p>通过 SSH 协议远程执行部署任务，支持密码和私钥两种认证方式</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>实时监控</h3>
+                    <p>实时查看部署进度和详细日志，问题一目了然，快速定位和解决</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🐳</div>
+                    <h3>Docker Compose</h3>
+                    <p>基于 Docker Compose 编排，配置灵活，易于维护和扩展</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="services">
+        <div class="container">
+            <h2 class="section-title">支持的服务</h2>
+            <div class="services-grid">
+                <div class="service-item">
+                    <div class="service-icon">🌐</div>
+                    <h4>OpenResty</h4>
+                    <p>高性能 Web 服务器</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">🔴</div>
+                    <h4>Redis</h4>
+                    <p>缓存数据库</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">🐬</div>
+                    <h4>MySQL</h4>
+                    <p>关系型数据库</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">📊</div>
+                    <h4>Prometheus</h4>
+                    <p>监控系统</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">📈</div>
+                    <h4>Grafana</h4>
+                    <p>可视化平台</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">🔍</div>
+                    <h4>Node Exporter</h4>
+                    <p>主机监控</p>
+                </div>
+                <div class="service-item">
+                    <div class="service-icon">☕</div>
+                    <h4>Spring Boot</h4>
+                    <p>Java 应用部署</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download">
+        <div class="container">
+            <h2 class="section-title" style="color: white;">快速开始</h2>
+            <div class="download-cards">
+                <div class="download-card">
+                    <h3>📦 可执行程序</h3>
+                    <p class="size">15MB | macOS ARM64</p>
+                    <p>包含 Python 环境和所有依赖<br>无需安装，解压即用</p>
+                    <a href="https://github.com/shenhui0000/LanDeployer/releases/download/v1.0.0/landeployer-python-darwin-arm64.tar.gz" class="btn btn-primary" style="margin-top: 1rem;">下载程序</a>
+                </div>
+                <div class="download-card">
+                    <h3>🐳 Docker 镜像</h3>
+                    <p class="size">1.8GB | AMD64 架构</p>
+                    <p>包含 10 个常用服务镜像<br>支持离线部署</p>
+                    <a href="https://github.com/shenhui0000/LanDeployer/releases/tag/v1.0.0" class="btn btn-primary" style="margin-top: 1rem;">下载镜像</a>
+                </div>
+            </div>
+
+            <div style="margin-top: 3rem; text-align: left; max-width: 800px; margin-left: auto; margin-right: auto;">
+                <h3 style="margin-bottom: 1rem;">使用方法</h3>
+                <pre><code># 1. 下载并解压
+wget https://github.com/shenhui0000/LanDeployer/releases/download/v1.0.0/landeployer-python-darwin-arm64.tar.gz
+tar xzf landeployer-python-darwin-arm64.tar.gz
+cd landeployer-release
+
+# 2. 启动服务
+./start.sh
+
+# 3. 访问 Web 界面
+open http://localhost:8080
+
+# 默认账号：admin / admin123</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>关于项目</h4>
+                    <p>LanDeployer 是一个专为离线内网环境设计的 Docker 服务部署工具，让部署变得简单高效。</p>
+                </div>
+                <div class="footer-section">
+                    <h4>快速链接</h4>
+                    <ul>
+                        <li><a href="https://github.com/shenhui0000/LanDeployer">GitHub 仓库</a></li>
+                        <li><a href="https://github.com/shenhui0000/LanDeployer/releases">下载中心</a></li>
+                        <li><a href="https://github.com/shenhui0000/LanDeployer/issues">问题反馈</a></li>
+                        <li><a href="https://github.com/shenhui0000/LanDeployer/blob/main/README.md">使用文档</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>技术栈</h4>
+                    <ul>
+                        <li>后端: FastAPI + Python</li>
+                        <li>前端: Vue 3 + Element Plus</li>
+                        <li>数据库: SQLite</li>
+                        <li>部署: Docker + Docker Compose</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 LanDeployer. Open source under MIT License.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
