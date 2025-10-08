@@ -50,3 +50,10 @@ pip-delete-this-directory.txt
 ### Static Files (generated) ###
 landeployer-backend/static/
 
+### Docker Images (large files) ###
+# 镜像文件不提交到 git，应该使用 GitHub Release 或 Git LFS
+images/
+packages/
+*.tar
+*.tar.gz
+

@@ -13,30 +13,33 @@ from app.services.ssh_service import SSHService
 
 router = APIRouter()
 
-@router.get("/", response_model=List[Host])
+@router.get("/", response_model=ResponseModel)
 async def get_hosts(db: Session = Depends(get_db)):
     """查询所有主机"""
     hosts = db.query(HostModel).all()
-    return [Host.model_validate(host) for host in hosts]
+    hosts_data = [Host.model_validate(host) for host in hosts]
+    return ResponseModel(code=200, message="查询成功", data=hosts_data)
 
-@router.get("/{host_id}", response_model=Host)
+@router.get("/{host_id}", response_model=ResponseModel)
 async def get_host(host_id: int, db: Session = Depends(get_db)):
     """根据ID查询主机"""
     host = db.query(HostModel).filter(HostModel.id == host_id).first()
     if not host:
         raise HTTPException(status_code=404, detail="主机不存在")
-    return Host.model_validate(host)
+    host_data = Host.model_validate(host)
+    return ResponseModel(code=200, message="查询成功", data=host_data)
 
-@router.post("/", response_model=Host)
+@router.post("/", response_model=ResponseModel)
 async def create_host(host: HostCreate, db: Session = Depends(get_db)):
     """创建主机"""
     db_host = HostModel(**host.model_dump())
     db.add(db_host)
     db.commit()
     db.refresh(db_host)
-    return Host.model_validate(db_host)
+    host_data = Host.model_validate(db_host)
+    return ResponseModel(code=200, message="创建成功", data=host_data)
 
-@router.put("/{host_id}", response_model=Host)
+@router.put("/{host_id}", response_model=ResponseModel)
 async def update_host(host_id: int, host: HostCreate, db: Session = Depends(get_db)):
     """更新主机"""
     db_host = db.query(HostModel).filter(HostModel.id == host_id).first()
@@ -49,9 +52,10 @@ async def update_host(host_id: int, host: HostCreate, db: Session = Depends(get_
     db_host.update_time = datetime.now()
     db.commit()
     db.refresh(db_host)
-    return Host.model_validate(db_host)
+    host_data = Host.model_validate(db_host)
+    return ResponseModel(code=200, message="更新成功", data=host_data)
 
-@router.delete("/{host_id}")
+@router.delete("/{host_id}", response_model=ResponseModel)
 async def delete_host(host_id: int, db: Session = Depends(get_db)):
     """删除主机"""
     db_host = db.query(HostModel).filter(HostModel.id == host_id).first()
@@ -60,9 +64,9 @@ async def delete_host(host_id: int, db: Session = Depends(get_db)):
     
     db.delete(db_host)
     db.commit()
-    return {"message": "删除成功"}
+    return ResponseModel(code=200, message="删除成功", data=None)
 
-@router.post("/test", response_model=HostTestResult)
+@router.post("/test", response_model=ResponseModel)
 async def test_connection(host: HostCreate, db: Session = Depends(get_db)):
     """测试连接"""
     import time
@@ -90,11 +94,12 @@ async def test_connection(host: HostCreate, db: Session = Depends(get_db)):
         response_time=response_time
     )
     
-    return result
+    return ResponseModel(code=200, message="测试完成", data=result)
 
-@router.get("/group/{group_name}", response_model=List[Host])
+@router.get("/group/{group_name}", response_model=ResponseModel)
 async def get_hosts_by_group(group_name: str, db: Session = Depends(get_db)):
     """根据分组查询主机"""
     hosts = db.query(HostModel).filter(HostModel.group_name == group_name).all()
-    return [Host.model_validate(host) for host in hosts]
+    hosts_data = [Host.model_validate(host) for host in hosts]
+    return ResponseModel(code=200, message="查询成功", data=hosts_data)
 

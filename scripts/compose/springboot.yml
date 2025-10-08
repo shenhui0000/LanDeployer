@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   springboot-jar:
-    image: eclipse-temurin:17-jdk-alpine
+    image: eclipse-temurin:8-jdk-alpine
     container_name: springboot-jar
     ports:
       - "8080:8080"
@@ -18,7 +18,7 @@ services:
       - lan-network
 
   springboot-war:
-    image: tomcat:9-jdk17
+    image: tomcat:9-jdk8
     container_name: springboot-war
     ports:
       - "8081:8080"

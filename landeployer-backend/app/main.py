@@ -57,20 +57,6 @@ if os.path.exists(static_dir):
         if os.path.exists(index_path):
             return FileResponse(index_path)
         return {"message": "LanDeployer API"}
-    
-    # 支持Vue Router的HTML5 history模式
-    # 所有非API和非静态资源的请求都返回index.html
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
-        # 如果是API请求，不处理（会由其他路由处理）
-        if full_path.startswith("api/"):
-            return {"error": "Not found"}, 404
-        
-        # 返回index.html，让Vue Router处理前端路由
-        index_path = os.path.join(static_dir, "index.html")
-        if os.path.exists(index_path):
-            return FileResponse(index_path)
-        return {"message": "LanDeployer API"}
 else:
     @app.get("/")
     async def read_root():
