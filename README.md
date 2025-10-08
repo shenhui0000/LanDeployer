@@ -69,7 +69,7 @@ cd landeployer-release
 - ✅ 无需安装任何依赖
 - ✅ 解压即用
 - ✅ 包含完整Python运行环境
-- ✅ 单文件可执行（约50-80MB）
+- ✅ 单文件可执行（约16MB）
 
 ---
 
@@ -89,7 +89,7 @@ cd landeployer-release
 
 ```bash
 # 1. 克隆项目
-git clone <your-repo-url>
+git clone https://github.com/shenhui0000/LanDeployer.git
 cd LanDeployer
 
 # 2. 一键构建（自动打包成包含Python环境的可执行文件）
@@ -230,8 +230,44 @@ LanDeployer/
 │   ├── compose/               # Docker Compose文件
 │   ├── config/                # 服务配置文件
 │   └── load.sh                # 镜像加载脚本
+├── docs/                      # 项目官网
+│   └── index.html             # GitHub Pages 官网
+├── images/                    # Docker镜像文件（不提交到Git）
+├── dist/                      # 构建输出（不提交到Git）
 ├── build-python.sh            # 构建脚本
+├── export-images.sh           # 镜像导出脚本
+├── package-images.sh          # 镜像打包脚本
+├── create-release.sh          # GitHub Release创建脚本
 └── README.md
+```
+
+---
+
+## 🛠️ 脚本说明
+
+### 构建和打包脚本
+
+| 脚本 | 用途 | 执行时机 | 说明 |
+|------|------|----------|------|
+| `build-python.sh` | 构建可执行程序 | 需要分发程序时 | 使用PyInstaller打包成单文件可执行程序 |
+| `export-images.sh` | 导出Docker镜像 | 准备离线镜像时 | 拉取并导出所有需要的Docker镜像 |
+| `package-images.sh` | 打包镜像文件 | 整理镜像时 | 将相关镜像打包到一起，方便分发 |
+| `create-release.sh` | 创建GitHub Release | 发布新版本时 | 自动创建GitHub Release并上传文件 |
+
+### 使用示例
+
+```bash
+# 1. 开发完成后，构建可执行程序
+./build-python.sh
+
+# 2. 准备离线镜像（在有外网的机器上）
+./export-images.sh
+
+# 3. （可选）打包镜像
+./package-images.sh
+
+# 4. 发布到GitHub（需要先登录 gh auth login）
+./create-release.sh
 ```
 
 ---
@@ -268,44 +304,55 @@ STORAGE_PATH=./storage
 | mysql | mysql:8.0.35 | 3306,9104 | 关系型数据库 |
 | prometheus | prometheus:v2.45.0 | 9090 | 监控系统 |
 | grafana | grafana:10.0.0 | 3000 | 可视化面板 |
-| springboot | eclipse-temurin:17 | 8080,8081 | Java应用 |
+| springboot | eclipse-temurin:8 | 8080,8081 | Java应用 |
 | node-exporter | node-exporter:v1.6.0 | 9100 | 节点监控 |
 
 ---
 
-## 🚀 打包和分发
+## 🌐 项目官网
 
-### 构建独立可执行文件
+项目官网：https://shenhui0000.github.io/LanDeployer/
+
+官网包含：
+- 功能特性介绍
+- 支持服务列表
+- 下载链接
+- 快速开始指南
+
+---
+
+## 📦 Docker 镜像
+
+### 镜像列表（AMD64 架构）
+
+| 镜像文件 | 大小 | 说明 |
+|---------|------|------|
+| openresty.tar | ~102MB | OpenResty Web 服务器 |
+| redis.tar | ~114MB | Redis 缓存数据库 |
+| redis-exporter.tar | ~9MB | Redis 监控导出器 |
+| mysql.tar | ~579MB | MySQL 8.0.35 数据库 |
+| mysqld-exporter.tar | ~20MB | MySQL 监控导出器 |
+| prometheus.tar | ~227MB | Prometheus 监控系统 |
+| node-exporter.tar | ~23MB | 节点监控导出器 |
+| grafana.tar | ~318MB | Grafana 可视化平台 |
+| temurin-jdk8.tar | ~184MB | Eclipse Temurin JDK 8 |
+| tomcat9-jdk8.tar | ~293MB | Tomcat 9 + JDK 8 |
+
+**总计大小**: 约 1.8GB
+
+### 下载和使用
 
 ```bash
-# 使用PyInstaller打包
-bash build-python.sh
+# 从 GitHub Release 下载
+wget https://github.com/shenhui0000/LanDeployer/releases/download/v1.0.0/openresty.tar
 
-# 生成文件：
-# dist/landeployer-release/landeployer (可执行文件)
-# dist/landeployer-python-*.tar.gz (压缩包)
+# 导入镜像
+docker load -i openresty.tar
+
+# 启动服务
+cd /opt/offline
+docker-compose -f compose/redis.yml up -d
 ```
-
-### 分发到其他机器
-
-```bash
-# 1. 拷贝压缩包到目标机器
-scp dist/landeployer-python-*.tar.gz user@target:/tmp/
-
-# 2. 在目标机器上解压
-cd /opt
-tar xzf /tmp/landeployer-python-*.tar.gz
-cd landeployer-release
-
-# 3. 运行（无需安装Python！）
-./start.sh
-```
-
-**优势：**
-- ✅ 目标机器无需安装Python
-- ✅ 无需安装任何依赖库
-- ✅ 一个文件包含所有环境
-- ✅ 真正的"绿色软件"
 
 ---
 
@@ -317,7 +364,7 @@ A: **不需要！** 使用预编译版本或自己构建后，可执行文件已
 
 ### Q: 打包后的文件有多大？
 
-A: 约50-80MB，包含Python运行时、所有依赖库和前端文件。
+A: 约16MB，包含Python运行时、所有依赖库和前端文件。
 
 ### Q: 支持哪些操作系统？
 
