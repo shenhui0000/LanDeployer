@@ -34,6 +34,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 健康检查（必须在通配符路由之前）
+@app.get("/api/health")
+async def health_check():
+    """健康检查"""
+    return {"status": "healthy", "version": "1.0.0"}
+
 # 注册路由
 app.include_router(hosts.router, prefix="/api/hosts", tags=["主机管理"])
 app.include_router(roles.router, prefix="/api/roles", tags=["角色管理"])
@@ -47,6 +53,20 @@ if os.path.exists(static_dir):
     
     @app.get("/")
     async def read_root():
+        index_path = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        return {"message": "LanDeployer API"}
+    
+    # 支持Vue Router的HTML5 history模式
+    # 所有非API和非静态资源的请求都返回index.html
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # 如果是API请求，不处理（会由其他路由处理）
+        if full_path.startswith("api/"):
+            return {"error": "Not found"}, 404
+        
+        # 返回index.html，让Vue Router处理前端路由
         index_path = os.path.join(static_dir, "index.html")
         if os.path.exists(index_path):
             return FileResponse(index_path)
@@ -69,11 +89,6 @@ async def startup_event():
     logger.info(f"访问地址: http://localhost:{settings.PORT}")
     logger.info("默认账号: admin / admin123")
     logger.info("========================================")
-
-@app.get("/api/health")
-async def health_check():
-    """健康检查"""
-    return {"status": "healthy", "version": "1.0.0"}
 
 if __name__ == "__main__":
     import uvicorn
