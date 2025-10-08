@@ -45,30 +45,32 @@ jobs:
 
     - name: Install Python dependencies
       shell: pwsh
-      working-directory: landeployer-backend
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r landeployer-backend/requirements.txt
         pip install pyinstaller
       timeout-minutes: 10
 
     - name: Install Node.js dependencies
       shell: pwsh
-      working-directory: landeployer-ui
-      run: npm ci
+      run: |
+        Push-Location landeployer-ui
+        npm ci
+        Pop-Location
       timeout-minutes: 5
 
     - name: Build frontend
       shell: pwsh
-      working-directory: landeployer-ui
-      run: npm run build
+      run: |
+        Push-Location landeployer-ui
+        npm run build
+        Pop-Location
       timeout-minutes: 5
 
     - name: Create PyInstaller spec
       shell: pwsh
-      working-directory: landeployer-backend
       run: |
-        $spec = @"
+        $specContent = @"
         # -*- mode: python ; coding: utf-8 -*-
 
         block_cipher = None
@@ -140,12 +142,14 @@ jobs:
             entitlements_file=None,
         )
         "@
-        Set-Content -Path landeployer.spec -Value $spec -Encoding UTF8
+        Set-Content -Path landeployer-backend/landeployer.spec -Value $specContent -Encoding UTF8
 
     - name: Build executable (first attempt)
       shell: pwsh
-      working-directory: landeployer-backend
-      run: pyinstaller landeployer.spec --clean
+      run: |
+        Push-Location landeployer-backend
+        pyinstaller landeployer.spec --clean
+        Pop-Location
       timeout-minutes: 15
       continue-on-error: true
       id: build_first_try
@@ -153,11 +157,12 @@ jobs:
     - name: Clean and rebuild on failure
       if: steps.build_first_try.outcome == 'failure'
       shell: pwsh
-      working-directory: landeployer-backend
       run: |
+        Push-Location landeployer-backend
         if (Test-Path build) { Remove-Item -Recurse -Force build }
         if (Test-Path dist) { Remove-Item -Recurse -Force dist }
         pyinstaller landeployer.spec --clean
+        Pop-Location
       timeout-minutes: 15
 
     - name: Create release package
