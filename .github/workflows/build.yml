@@ -61,6 +61,82 @@ jobs:
         cd landeployer-ui
         npm run build
 
+    - name: Create PyInstaller spec
+      run: |
+        cd landeployer-backend
+        cat > landeployer.spec << 'EOF'
+        # -*- mode: python ; coding: utf-8 -*-
+
+        block_cipher = None
+
+        a = Analysis(
+            ['run.py'],
+            pathex=[],
+            binaries=[],
+            datas=[
+                ('static', 'static'),
+                ('data', 'data'),
+            ],
+            hiddenimports=[
+                'uvicorn.logging',
+                'uvicorn.loops',
+                'uvicorn.loops.auto',
+                'uvicorn.protocols',
+                'uvicorn.protocols.http',
+                'uvicorn.protocols.http.auto',
+                'uvicorn.protocols.websockets',
+                'uvicorn.protocols.websockets.auto',
+                'uvicorn.lifespan',
+                'uvicorn.lifespan.on',
+                'app',
+                'app.main',
+                'app.config',
+                'app.database',
+                'app.models',
+                'app.schemas',
+                'app.routers',
+                'app.routers.hosts',
+                'app.routers.roles',
+                'app.routers.deploy',
+                'app.services',
+                'app.services.ssh_service',
+                'app.services.role_service',
+            ],
+            hookspath=[],
+            hooksconfig={},
+            runtime_hooks=[],
+            excludes=[],
+            win_no_prefer_redirects=False,
+            win_private_assemblies=False,
+            cipher=block_cipher,
+            noarchive=False,
+        )
+
+        pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+
+        exe = EXE(
+            pyz,
+            a.scripts,
+            a.binaries,
+            a.zipfiles,
+            a.datas,
+            [],
+            name='landeployer',
+            debug=False,
+            bootloader_ignore_signals=False,
+            strip=False,
+            upx=True,
+            upx_exclude=[],
+            runtime_tmpdir=None,
+            console=True,
+            disable_windowed_traceback=False,
+            argv_emulation=False,
+            target_arch=None,
+            codesign_identity=None,
+            entitlements_file=None,
+        )
+        EOF
+
     - name: Build executable
       run: |
         cd landeployer-backend
@@ -76,7 +152,10 @@ jobs:
         # Create start script
         if [ "${{ matrix.platform }}" = "windows" ]; then
           echo "@echo off" > dist/landeployer-release/start.bat
-          echo "mkdir data logs storage 2>nul" >> dist/landeployer-release/start.bat
+          echo "cd /d \"%%~dp0\"" >> dist/landeployer-release/start.bat
+          echo "if not exist \"data\" mkdir data" >> dist/landeployer-release/start.bat
+          echo "if not exist \"logs\" mkdir logs" >> dist/landeployer-release/start.bat
+          echo "if not exist \"storage\" mkdir storage" >> dist/landeployer-release/start.bat
           echo "landeployer.exe" >> dist/landeployer-release/start.bat
         else
           echo "#!/bin/bash" > dist/landeployer-release/start.sh
@@ -86,7 +165,10 @@ jobs:
           chmod +x dist/landeployer-release/start.sh
         fi
         
-        chmod +x dist/landeployer-release/landeployer*
+        # Make executables executable (skip on Windows)
+        if [ "${{ matrix.platform }}" != "windows" ]; then
+          chmod +x dist/landeployer-release/landeployer*
+        fi
 
     - name: Create archive
       run: |
