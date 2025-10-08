@@ -47,6 +47,13 @@ ENV/
 pip-log.txt
 pip-delete-this-directory.txt
 
+### PyInstaller ###
+*.spec
+build/
+dist/
+*.manifest
+*.log
+
 ### Static Files (generated) ###
 landeployer-backend/static/
 

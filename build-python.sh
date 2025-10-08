@@ -45,11 +45,6 @@ fi
 
 npm run build
 
-# 复制前端文件到后端static目录
-echo "复制前端文件..."
-rm -rf ../landeployer-backend/app/static
-cp -r ../landeployer-server/src/main/resources/static ../landeployer-backend/app/static 2>/dev/null || true
-
 echo ""
 echo "3. 使用PyInstaller打包..."
 echo "========================================="
@@ -66,7 +61,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('app/static', 'app/static'),
+        ('static', 'static'),
     ],
     hiddenimports=[
         'uvicorn.logging',
