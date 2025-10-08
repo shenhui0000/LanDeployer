@@ -38,6 +38,109 @@ LanDeployer 是一个专为内网环境设计的可视化部署工具，支持�
 
 ## 📦 快速开始
 
+### 方式选择
+
+LanDeployer 提供**4种启动方式**，根据您的环境选择：
+
+| 启动方式 | 是否需要JDK | 包体积 | 适用场景 |
+|---------|-----------|--------|---------|
+| **Docker部署** | ❌ 不需要 | ~100MB | 生产环境、服务器 |
+| **独立包（含JRE）** | ❌ 不需要 | ~120MB | 桌面环境、演示 |
+| **自动下载JRE** | ❌ 不需要 | ~50MB | 测试环境 |
+| **传统方式** | ✅ 需要 | ~30MB | 已有Java环境 |
+
+> 💡 **推荐**: 生产环境使用Docker，演示环境使用独立包
+
+---
+
+## 🚀 启动模式
+
+### 模式1: Docker部署（推荐，无需JDK）
+
+**优势**: 环境隔离、一键启动、支持离线
+
+```bash
+# 1. 构建Docker镜像（包含JRE）
+bash build-docker.sh
+
+# 2. 启动容器
+docker-compose -f docker-compose-landeployer.yml up -d
+
+# 3. 访问
+# http://localhost:8080
+# 账号: admin / admin123
+```
+
+**离线部署**:
+```bash
+# 导出镜像
+docker save -o landeployer-docker.tar landeployer:latest
+
+# 拷贝到其他机器
+scp landeployer-docker.tar user@target:/tmp/
+
+# 在目标机器加载并运行
+docker load -i /tmp/landeployer-docker.tar
+docker run -d -p 8080:8080 --name landeployer landeployer:latest
+```
+
+---
+
+### 模式2: 独立包部署（无需JDK，开箱即用）
+
+**优势**: 解压即用、包含精简JRE、跨平台
+
+```bash
+# 1. 构建独立包（仅构建时需要JDK）
+bash build-standalone.sh
+
+# 2. 会生成两个压缩包
+# - dist/landeployer-standalone-v1.0.0-linux.tar.gz
+# - dist/landeployer-standalone-v1.0.0-windows.zip
+
+# 3. 解压并运行
+# Linux/Mac:
+tar xzf landeployer-standalone-v1.0.0-linux.tar.gz
+cd landeployer-standalone-v1.0.0
+./start.sh
+
+# Windows:
+# 解压后双击 start.bat
+```
+
+**包含内容**:
+- `landeployer.jar` - 应用程序
+- `jre/` - 精简Java运行环境（50-80MB）
+- `start.sh` / `start.bat` - 启动脚本
+- `data/` `logs/` `storage/` - 数据目录
+
+---
+
+### 模式3: 自动下载JRE（无需JDK，首次自动配置）
+
+**优势**: 首次自动下载JRE、后续无感知、包体积小
+
+```bash
+# 1. 构建项目
+bash build.sh
+
+# 2. 运行（首次会询问是否下载JRE）
+bash run-with-bundled-jre.sh
+
+# 脚本会自动：
+# - 检测操作系统和架构
+# - 提示下载匹配的JRE（约50-80MB）
+# - 下载并安装到 jre/ 目录
+# - 启动应用
+# - 后续运行直接使用已下载的JRE
+```
+
+---
+
+### 模式4: 传统方式（需要JDK 17+）
+
+**优势**: 包体积最小、配置灵活
+
 ### 环境要求
 
 - JDK 17+
@@ -66,12 +169,50 @@ npm run build
 ### 2. 运行应用
 
 ```bash
+# 简单运行
 java -jar landeployer-server/target/landeployer.jar
+
+# 或使用一键脚本
+bash build.sh  # 构建
+java -jar landeployer-server/target/landeployer.jar
+```
+
+**后台运行**:
+```bash
+# 创建目录
+mkdir -p /opt/landeployer/{data,logs,storage}
+cp landeployer-server/target/landeployer.jar /opt/landeployer/
+
+# 后台运行
+cd /opt/landeployer
+nohup java -jar landeployer.jar > logs/app.log 2>&1 &
+
+# 查看日志
+tail -f logs/app.log
 ```
 
 应用启动后访问: `http://localhost:8080`
 
 默认账号: `admin / admin123`
+
+---
+
+## 🎯 启动模式对比
+
+| 特性 | Docker | 独立包 | 自动JRE | 传统方式 |
+|------|--------|--------|---------|---------|
+| 需要安装Java | ❌ | ❌ | ❌ | ✅ |
+| 需要安装Docker | ✅ | ❌ | ❌ | ❌ |
+| 包体积 | 约100MB | 约120MB | 约50MB | 约30MB |
+| 首次需要网络 | ❌ | ❌ | ✅ | ❌ |
+| 环境隔离 | ✅ | ❌ | ❌ | ❌ |
+| 跨平台 | ✅ | ✅ | ✅ | ✅ |
+| 易用性 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
+| 推荐场景 | 生产环境 | 演示/测试 | 开发环境 | 已有Java |
+
+> 📚 **详细部署指南**: 查看 [DEPLOYMENT.md](DEPLOYMENT.md) 了解更多部署选项和最佳实践
+
+---
 
 ### 3. 使用流程
 
@@ -221,28 +362,63 @@ npm run dev
 
 ## 🚀 生产部署
 
-### 打包
+> 💡 生产环境推荐使用 **Docker部署** 或 **独立包部署**
+
+### 方案A: Docker部署（推荐）
 
 ```bash
-# 前端打包
+# 1. 构建并导出镜像
+bash build-docker.sh
+# 生成 landeployer-docker.tar
+
+# 2. 拷贝到生产服务器
+scp landeployer-docker.tar root@prod-server:/opt/landeployer/
+scp docker-compose-landeployer.yml root@prod-server:/opt/landeployer/
+
+# 3. 在生产服务器上加载并启动
+ssh root@prod-server
+cd /opt/landeployer
+docker load -i landeployer-docker.tar
+docker-compose -f docker-compose-landeployer.yml up -d
+
+# 4. 查看状态
+docker ps
+docker logs -f landeployer
+```
+
+### 方案B: 独立包部署
+
+```bash
+# 1. 构建独立包
+bash build-standalone.sh
+# 生成 dist/landeployer-standalone-v1.0.0-linux.tar.gz
+
+# 2. 拷贝到生产服务器
+scp dist/landeployer-standalone-v1.0.0-linux.tar.gz root@prod-server:/opt/
+
+# 3. 解压并启动
+ssh root@prod-server
+cd /opt
+tar xzf landeployer-standalone-v1.0.0-linux.tar.gz
+cd landeployer-standalone-v1.0.0
+./start.sh
+```
+
+### 方案C: 传统方式（需要JDK）
+
+```bash
+# 1. 打包
 cd landeployer-ui
 npm run build
 
-# 后端打包（包含前端）
 cd ../landeployer-server
 mvn clean package -DskipTests
-```
 
-### 运行
-
-```bash
-# 创建目录
+# 2. 部署
 mkdir -p /opt/landeployer/{data,logs,storage}
+cp target/landeployer.jar /opt/landeployer/
 
-# 拷贝jar包
-cp landeployer-server/target/landeployer.jar /opt/landeployer/
-
-# 运行
+# 3. 运行
 cd /opt/landeployer
 nohup java -jar landeployer.jar > logs/app.log 2>&1 &
 ```
