@@ -1,0 +1,30 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node_exporter:9100']
+
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysqld_exporter:9104']
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis_exporter:9121']
+
+  - job_name: 'openresty'
+    static_configs:
+      - targets: ['openresty:9145']
+
+  - job_name: 'springboot'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['springboot-jar:8080', 'springboot-war:8080']
+

@@ -1,0 +1,36 @@
+### Java ###
+*.class
+*.jar
+*.war
+*.ear
+*.log
+target/
+*.iml
+.idea/
+.settings/
+.project
+.classpath
+
+### Spring Boot ###
+data/
+logs/
+storage/
+*.db
+*.db-journal
+
+### Node ###
+node_modules/
+dist/
+.DS_Store
+*.local
+
+### Build ###
+build/
+out/
+
+### Temp ###
+*.tmp
+*.bak
+*.swp
+*~.nib
+

@@ -1,0 +1,45 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: landeployer
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:data/landeployer.db
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5GB
+      max-request-size: 5GB
+
+# 应用配置
+app:
+  # 默认远程路径
+  remote-path: /opt/offline
+  # 本地存储路径
+  local-storage: ./storage
+  # 脚本目录
+  script-path: ./scripts
+  # SSH超时时间（毫秒）
+  ssh-timeout: 30000
+  # 上传分片大小（字节）
+  chunk-size: 10485760
+
+logging:
+  level:
+    root: INFO
+    com.landeployer: DEBUG
+  file:
+    name: logs/landeployer.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+

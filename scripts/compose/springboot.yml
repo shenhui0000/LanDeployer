@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  springboot-jar:
+    image: eclipse-temurin:17-jdk-alpine
+    container_name: springboot-jar
+    ports:
+      - "8080:8080"
+    volumes:
+      - /opt/offline/config/springboot:/app/config:ro
+      - /opt/offline/app/app.jar:/app/app.jar:ro
+    working_dir: /app
+    command: java -Dspring.config.location=/app/config/ -jar /app/app.jar
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    restart: unless-stopped
+    networks:
+      - lan-network
+
+  springboot-war:
+    image: tomcat:9-jdk17
+    container_name: springboot-war
+    ports:
+      - "8081:8080"
+    volumes:
+      - /opt/offline/config/springboot:/app/config:ro
+      - /opt/offline/app/app.war:/usr/local/tomcat/webapps/ROOT.war:ro
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - JAVA_OPTS=-Dspring.config.location=/app/config/
+    restart: unless-stopped
+    networks:
+      - lan-network
+
+networks:
+  lan-network:
+    driver: bridge
+

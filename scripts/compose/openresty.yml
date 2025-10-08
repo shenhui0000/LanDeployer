@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  openresty:
+    image: openresty/openresty:1.25.3.1-alpine
+    container_name: openresty
+    ports:
+      - "80:80"
+      - "443:443"
+      - "9145:9145"
+    volumes:
+      - /opt/offline/config/openresty/conf.d:/etc/nginx/conf.d:ro
+      - /opt/offline/config/openresty/lua:/usr/local/share/lua/5.1:ro
+    restart: unless-stopped
+    networks:
+      - lan-network
+
+networks:
+  lan-network:
+    driver: bridge
+
