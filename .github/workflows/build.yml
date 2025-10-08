@@ -6,8 +6,185 @@ on:
       - 'v*'
   workflow_dispatch:
 
+env:
+  VERSION: '1.0.1'
+
 jobs:
-  build:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      PLATFORM: windows
+      ARCH: x86_64
+      OUTPUT_NAME: landeployer-python-windows-x86_64
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: landeployer-ui/package-lock.json
+
+    - name: Install Python dependencies
+      shell: pwsh
+      run: |
+        python -m pip install --upgrade pip
+        cd landeployer-backend
+        pip install -r requirements.txt
+        pip install pyinstaller
+      timeout-minutes: 10
+
+    - name: Install Node.js dependencies
+      shell: pwsh
+      run: |
+        cd landeployer-ui
+        npm install
+      timeout-minutes: 5
+
+    - name: Build frontend
+      shell: pwsh
+      run: |
+        cd landeployer-ui
+        npm run build
+      timeout-minutes: 5
+
+    - name: Create PyInstaller spec
+      shell: pwsh
+      run: |
+        cd landeployer-backend
+        $spec = @"
+        # -*- mode: python ; coding: utf-8 -*-
+
+        block_cipher = None
+
+        a = Analysis(
+            ['run.py'],
+            pathex=[],
+            binaries=[],
+            datas=[
+                ('static', 'static'),
+                ('data', 'data'),
+            ],
+            hiddenimports=[
+                'uvicorn.logging',
+                'uvicorn.loops',
+                'uvicorn.loops.auto',
+                'uvicorn.protocols',
+                'uvicorn.protocols.http',
+                'uvicorn.protocols.http.auto',
+                'uvicorn.protocols.websockets',
+                'uvicorn.protocols.websockets.auto',
+                'uvicorn.lifespan',
+                'uvicorn.lifespan.on',
+                'app',
+                'app.main',
+                'app.config',
+                'app.database',
+                'app.models',
+                'app.schemas',
+                'app.routers',
+                'app.routers.hosts',
+                'app.routers.roles',
+                'app.routers.deploy',
+                'app.services',
+                'app.services.ssh_service',
+                'app.services.role_service',
+            ],
+            hookspath=[],
+            hooksconfig={},
+            runtime_hooks=[],
+            excludes=[],
+            win_no_prefer_redirects=False,
+            win_private_assemblies=False,
+            cipher=block_cipher,
+            noarchive=False,
+        )
+
+        pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+
+        exe = EXE(
+            pyz,
+            a.scripts,
+            a.binaries,
+            a.zipfiles,
+            a.datas,
+            [],
+            name='landeployer',
+            debug=False,
+            bootloader_ignore_signals=False,
+            strip=False,
+            upx=True,
+            upx_exclude=[],
+            runtime_tmpdir=None,
+            console=True,
+            disable_windowed_traceback=False,
+            argv_emulation=False,
+            target_arch=None,
+            codesign_identity=None,
+            entitlements_file=None,
+        )
+        "@
+        $spec | Out-File -FilePath landeployer.spec -Encoding UTF8
+
+    - name: Build executable
+      shell: pwsh
+      run: |
+        cd landeployer-backend
+        pyinstaller landeployer.spec --clean
+      timeout-minutes: 15
+      continue-on-error: true
+      id: build_first_try
+
+    - name: Clean and rebuild on failure
+      if: steps.build_first_try.outcome == 'failure'
+      shell: pwsh
+      run: |
+        cd landeployer-backend
+        Remove-Item -Recurse -Force build -ErrorAction SilentlyContinue
+        Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
+        pyinstaller landeployer.spec --clean
+      timeout-minutes: 15
+
+    - name: Create release package
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force -Path dist/landeployer-release
+        Copy-Item landeployer-backend/dist/landeployer* dist/landeployer-release/
+        Copy-Item README.md dist/landeployer-release/
+        Copy-Item -Recurse scripts dist/landeployer-release/ -ErrorAction SilentlyContinue
+        
+        # Create start script
+        @"
+        @echo off
+        cd /d "%~dp0"
+        if not exist "data" mkdir data
+        if not exist "logs" mkdir logs
+        if not exist "storage" mkdir storage
+        landeployer.exe
+        "@ | Out-File -FilePath dist/landeployer-release/start.bat -Encoding ASCII
+
+    - name: Create archive
+      shell: pwsh
+      run: |
+        cd dist
+        Compress-Archive -Path landeployer-release -DestinationPath ${{ env.OUTPUT_NAME }}.zip
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.OUTPUT_NAME }}
+        path: dist/${{ env.OUTPUT_NAME }}.zip
+
+  build-other:
+    needs: build-windows
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -17,10 +194,6 @@ jobs:
             platform: linux
             arch: x86_64
             output_name: landeployer-python-linux-x86_64
-          - os: windows-latest
-            platform: windows
-            arch: x86_64
-            output_name: landeployer-python-windows-x86_64
           - os: macos-latest
             platform: darwin
             arch: arm64
@@ -142,6 +315,16 @@ jobs:
         cd landeployer-backend
         pyinstaller landeployer.spec --clean
       timeout-minutes: 15
+      continue-on-error: true
+      id: build_first_try
+
+    - name: Clean and rebuild on failure
+      if: steps.build_first_try.outcome == 'failure'
+      run: |
+        cd landeployer-backend
+        rm -rf build dist
+        pyinstaller landeployer.spec --clean
+      timeout-minutes: 15
 
     - name: Create release package
       run: |
@@ -151,43 +334,28 @@ jobs:
         cp -r scripts dist/landeployer-release/ 2>/dev/null || true
         
         # Create start script
-        if [ "${{ matrix.platform }}" = "windows" ]; then
-          echo "@echo off" > dist/landeployer-release/start.bat
-          echo "cd /d \"%%~dp0\"" >> dist/landeployer-release/start.bat
-          echo "if not exist \"data\" mkdir data" >> dist/landeployer-release/start.bat
-          echo "if not exist \"logs\" mkdir logs" >> dist/landeployer-release/start.bat
-          echo "if not exist \"storage\" mkdir storage" >> dist/landeployer-release/start.bat
-          echo "landeployer.exe" >> dist/landeployer-release/start.bat
-        else
-          echo "#!/bin/bash" > dist/landeployer-release/start.sh
-          echo 'cd "$(dirname "$0")"' >> dist/landeployer-release/start.sh
-          echo "mkdir -p data logs storage" >> dist/landeployer-release/start.sh
-          echo "./landeployer" >> dist/landeployer-release/start.sh
-          chmod +x dist/landeployer-release/start.sh
-        fi
+        echo "#!/bin/bash" > dist/landeployer-release/start.sh
+        echo 'cd "$(dirname "$0")"' >> dist/landeployer-release/start.sh
+        echo "mkdir -p data logs storage" >> dist/landeployer-release/start.sh
+        echo "./landeployer" >> dist/landeployer-release/start.sh
+        chmod +x dist/landeployer-release/start.sh
         
-        # Make executables executable (skip on Windows)
-        if [ "${{ matrix.platform }}" != "windows" ]; then
-          chmod +x dist/landeployer-release/landeployer*
-        fi
+        # Make executables executable
+        chmod +x dist/landeployer-release/landeployer*
 
     - name: Create archive
       run: |
         cd dist
-        if [ "${{ matrix.platform }}" = "windows" ]; then
-          powershell Compress-Archive -Path landeployer-release -DestinationPath ${{ matrix.output_name }}.zip
-        else
-          tar czf ${{ matrix.output_name }}.tar.gz landeployer-release
-        fi
+        tar czf ${{ matrix.output_name }}.tar.gz landeployer-release
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.output_name }}
-        path: dist/${{ matrix.output_name }}.*
+        path: dist/${{ matrix.output_name }}.tar.gz
 
   create-release:
-    needs: build
+    needs: [build-windows, build-other]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     
@@ -203,6 +371,6 @@ jobs:
         files: |
           artifacts/*/landeployer-python-linux-x86_64.tar.gz
           artifacts/*/landeployer-python-windows-x86_64.zip
-          artifacts/*/landeployer-python-darwin-x86_64.tar.gz
           artifacts/*/landeployer-python-darwin-arm64.tar.gz
         generate_release_notes: true
+        name: Release ${{ env.VERSION }}
