@@ -1,0 +1,125 @@
+name: Build Multi-Platform Executables
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x86_64
+            output_name: landeployer-python-linux-x86_64
+          - os: windows-latest
+            platform: windows
+            arch: x86_64
+            output_name: landeployer-python-windows-x86_64
+          - os: macos-latest
+            platform: darwin
+            arch: x86_64
+            output_name: landeployer-python-darwin-x86_64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+            output_name: landeployer-python-darwin-arm64
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: landeployer-ui/package-lock.json
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        cd landeployer-backend
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Install Node.js dependencies
+      run: |
+        cd landeployer-ui
+        npm install
+
+    - name: Build frontend
+      run: |
+        cd landeployer-ui
+        npm run build
+
+    - name: Build executable
+      run: |
+        cd landeployer-backend
+        pyinstaller landeployer.spec --clean
+
+    - name: Create release package
+      run: |
+        mkdir -p dist/landeployer-release
+        cp landeployer-backend/dist/landeployer* dist/landeployer-release/
+        cp README.md dist/landeployer-release/
+        cp -r scripts dist/landeployer-release/ 2>/dev/null || true
+        
+        # Create start script
+        if [ "${{ matrix.platform }}" = "windows" ]; then
+          echo "@echo off" > dist/landeployer-release/start.bat
+          echo "mkdir data logs storage 2>nul" >> dist/landeployer-release/start.bat
+          echo "landeployer.exe" >> dist/landeployer-release/start.bat
+        else
+          echo "#!/bin/bash" > dist/landeployer-release/start.sh
+          echo 'cd "$(dirname "$0")"' >> dist/landeployer-release/start.sh
+          echo "mkdir -p data logs storage" >> dist/landeployer-release/start.sh
+          echo "./landeployer" >> dist/landeployer-release/start.sh
+          chmod +x dist/landeployer-release/start.sh
+        fi
+        
+        chmod +x dist/landeployer-release/landeployer*
+
+    - name: Create archive
+      run: |
+        cd dist
+        if [ "${{ matrix.platform }}" = "windows" ]; then
+          powershell Compress-Archive -Path landeployer-release -DestinationPath ${{ matrix.output_name }}.zip
+        else
+          tar czf ${{ matrix.output_name }}.tar.gz landeployer-release
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.output_name }}
+        path: dist/${{ matrix.output_name }}.*
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          artifacts/*/landeployer-python-linux-x86_64.tar.gz
+          artifacts/*/landeployer-python-windows-x86_64.zip
+          artifacts/*/landeployer-python-darwin-x86_64.tar.gz
+          artifacts/*/landeployer-python-darwin-arm64.tar.gz
+        generate_release_notes: true
