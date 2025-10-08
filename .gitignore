@@ -34,3 +34,19 @@ out/
 *.swp
 *~.nib
 
+### Python ###
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+### Static Files (generated) ###
+landeployer-backend/static/
+
