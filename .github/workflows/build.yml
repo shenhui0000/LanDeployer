@@ -10,191 +10,7 @@ env:
   VERSION: '1.0.2'
 
 jobs:
-  build-windows:
-    runs-on: windows-2022
-    timeout-minutes: 30
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-
-    - name: Cache Python packages
-      uses: actions/cache@v3
-      with:
-        path: ~\AppData\Local\pip\Cache
-        key: ${{ runner.os }}-pip-${{ hashFiles('landeployer-backend/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
-    - name: Cache npm packages
-      uses: actions/cache@v3
-      with:
-        path: landeployer-ui/node_modules
-        key: ${{ runner.os }}-npm-${{ hashFiles('landeployer-ui/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-npm-
-
-    - name: Install Python dependencies
-      shell: pwsh
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r landeployer-backend/requirements.txt
-        pip install pyinstaller
-      timeout-minutes: 10
-
-    - name: Install Node.js dependencies
-      shell: pwsh
-      run: |
-        Push-Location landeployer-ui
-        npm ci
-        Pop-Location
-      timeout-minutes: 5
-
-    - name: Build frontend
-      shell: pwsh
-      run: |
-        Push-Location landeployer-ui
-        npm run build
-        Pop-Location
-      timeout-minutes: 5
-
-    - name: Create PyInstaller spec
-      shell: pwsh
-      run: |
-        $specContent = @"
-        # -*- mode: python ; coding: utf-8 -*-
-
-        block_cipher = None
-
-        a = Analysis(
-            ['run.py'],
-            pathex=[],
-            binaries=[],
-            datas=[
-                ('static', 'static'),
-                ('data', 'data'),
-            ],
-            hiddenimports=[
-                'uvicorn.logging',
-                'uvicorn.loops',
-                'uvicorn.loops.auto',
-                'uvicorn.protocols',
-                'uvicorn.protocols.http',
-                'uvicorn.protocols.http.auto',
-                'uvicorn.protocols.websockets',
-                'uvicorn.protocols.websockets.auto',
-                'uvicorn.lifespan',
-                'uvicorn.lifespan.on',
-                'app',
-                'app.main',
-                'app.config',
-                'app.database',
-                'app.models',
-                'app.schemas',
-                'app.routers',
-                'app.routers.hosts',
-                'app.routers.roles',
-                'app.routers.deploy',
-                'app.services',
-                'app.services.ssh_service',
-                'app.services.role_service',
-            ],
-            hookspath=[],
-            hooksconfig={},
-            runtime_hooks=[],
-            excludes=[],
-            win_no_prefer_redirects=False,
-            win_private_assemblies=False,
-            cipher=block_cipher,
-            noarchive=False,
-        )
-
-        pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-
-        exe = EXE(
-            pyz,
-            a.scripts,
-            a.binaries,
-            a.zipfiles,
-            a.datas,
-            [],
-            name='landeployer',
-            debug=False,
-            bootloader_ignore_signals=False,
-            strip=False,
-            upx=True,
-            upx_exclude=[],
-            runtime_tmpdir=None,
-            console=True,
-            disable_windowed_traceback=False,
-            argv_emulation=False,
-            target_arch=None,
-            codesign_identity=None,
-            entitlements_file=None,
-        )
-        "@
-        Set-Content -Path landeployer-backend/landeployer.spec -Value $specContent -Encoding UTF8
-
-    - name: Build executable (first attempt)
-      shell: pwsh
-      run: |
-        Push-Location landeployer-backend
-        pyinstaller landeployer.spec --clean
-        Pop-Location
-      timeout-minutes: 15
-      continue-on-error: true
-      id: build_first_try
-
-    - name: Clean and rebuild on failure
-      if: steps.build_first_try.outcome == 'failure'
-      shell: pwsh
-      run: |
-        Push-Location landeployer-backend
-        if (Test-Path build) { Remove-Item -Recurse -Force build }
-        if (Test-Path dist) { Remove-Item -Recurse -Force dist }
-        pyinstaller landeployer.spec --clean
-        Pop-Location
-      timeout-minutes: 15
-
-    - name: Create release package
-      shell: pwsh
-      run: |
-        New-Item -ItemType Directory -Force -Path dist/landeployer-release | Out-Null
-        Copy-Item -Path landeployer-backend/dist/landeployer.exe -Destination dist/landeployer-release/
-        Copy-Item -Path README.md -Destination dist/landeployer-release/
-        if (Test-Path scripts) { Copy-Item -Path scripts -Destination dist/landeployer-release/ -Recurse }
-        
-        $startScript = @"
-@echo off
-cd /d "%~dp0"
-if not exist "data" mkdir data
-if not exist "logs" mkdir logs
-if not exist "storage" mkdir storage
-landeployer.exe
-"@
-        Set-Content -Path dist/landeployer-release/start.bat -Value $startScript -Encoding ASCII
-
-    - name: Create archive
-      shell: pwsh
-      run: Compress-Archive -Path dist/landeployer-release -DestinationPath dist/landeployer-python-windows-x86_64.zip -Force
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: landeployer-python-windows-x86_64
-        path: dist/landeployer-python-windows-x86_64.zip
-
-  build-other:
-    needs: build-windows
+  build:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -379,7 +195,7 @@ landeployer.exe
         path: dist/${{ matrix.output_name }}.tar.gz
 
   create-release:
-    needs: [build-windows, build-other]
+    needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     
@@ -394,7 +210,6 @@ landeployer.exe
       with:
         files: |
           artifacts/*/landeployer-python-linux-x86_64.tar.gz
-          artifacts/*/landeployer-python-windows-x86_64.zip
           artifacts/*/landeployer-python-darwin-arm64.tar.gz
         generate_release_notes: true
         name: Release ${{ env.VERSION }}
