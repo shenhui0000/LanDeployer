@@ -1,4 +1,4 @@
-name: Build Simple
+name: Build Multi-Platform
 
 on:
   workflow_dispatch:
@@ -7,9 +7,24 @@ on:
       - 'v*'
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  build:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x86_64
+            output_name: landeployer-python-linux-x86_64
+          - os: windows-latest
+            platform: windows
+            arch: x86_64
+            output_name: landeployer-python-windows-x86_64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+            output_name: landeployer-python-darwin-arm64
     
     steps:
     - uses: actions/checkout@v4
@@ -89,27 +104,40 @@ jobs:
         cp README.md dist/landeployer-release/
         cp -r scripts dist/landeployer-release/ 2>/dev/null || true
         
-        # Create start script
-        echo "#!/bin/bash" > dist/landeployer-release/start.sh
-        echo 'cd "$(dirname "$0")"' >> dist/landeployer-release/start.sh
-        echo "mkdir -p data logs storage" >> dist/landeployer-release/start.sh
-        echo "./landeployer" >> dist/landeployer-release/start.sh
-        chmod +x dist/landeployer-release/start.sh
-        chmod +x dist/landeployer-release/landeployer*
+        # Create start script based on platform
+        if [ "${{ matrix.platform }}" = "windows" ]; then
+          echo "@echo off" > dist/landeployer-release/start.bat
+          echo "cd /d \"%%~dp0\"" >> dist/landeployer-release/start.bat
+          echo "if not exist \"data\" mkdir data" >> dist/landeployer-release/start.bat
+          echo "if not exist \"logs\" mkdir logs" >> dist/landeployer-release/start.bat
+          echo "if not exist \"storage\" mkdir storage" >> dist/landeployer-release/start.bat
+          echo "landeployer.exe" >> dist/landeployer-release/start.bat
+        else
+          echo "#!/bin/bash" > dist/landeployer-release/start.sh
+          echo 'cd "$(dirname "$0")"' >> dist/landeployer-release/start.sh
+          echo "mkdir -p data logs storage" >> dist/landeployer-release/start.sh
+          echo "./landeployer" >> dist/landeployer-release/start.sh
+          chmod +x dist/landeployer-release/start.sh
+          chmod +x dist/landeployer-release/landeployer*
+        fi
 
     - name: Create archive
       run: |
         cd dist
-        tar czf landeployer-python-linux-x86_64.tar.gz landeployer-release
+        if [ "${{ matrix.platform }}" = "windows" ]; then
+          powershell Compress-Archive -Path landeployer-release -DestinationPath ${{ matrix.output_name }}.zip -Force
+        else
+          tar czf ${{ matrix.output_name }}.tar.gz landeployer-release
+        fi
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: landeployer-python-linux-x86_64
-        path: dist/landeployer-python-linux-x86_64.tar.gz
+        name: ${{ matrix.output_name }}
+        path: dist/${{ matrix.output_name }}.*
 
   create-release:
-    needs: build-linux
+    needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     
@@ -124,4 +152,6 @@ jobs:
       with:
         files: |
           artifacts/landeployer-python-linux-x86_64/landeployer-python-linux-x86_64.tar.gz
+          artifacts/landeployer-python-windows-x86_64/landeployer-python-windows-x86_64.zip
+          artifacts/landeployer-python-darwin-arm64/landeployer-python-darwin-arm64.tar.gz
         generate_release_notes: true
