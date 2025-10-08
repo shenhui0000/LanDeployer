@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  VERSION: '1.0.1'
+  VERSION: '1.0.2'
 
 jobs:
   build-windows:
@@ -27,6 +27,22 @@ jobs:
       with:
         node-version: '18'
 
+    - name: Cache Python packages
+      uses: actions/cache@v3
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('landeployer-backend/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Cache npm packages
+      uses: actions/cache@v3
+      with:
+        path: landeployer-ui/node_modules
+        key: ${{ runner.os }}-npm-${{ hashFiles('landeployer-ui/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
+
     - name: Install Python dependencies
       shell: pwsh
       working-directory: landeployer-backend
@@ -39,7 +55,7 @@ jobs:
     - name: Install Node.js dependencies
       shell: pwsh
       working-directory: landeployer-ui
-      run: npm install
+      run: npm ci
       timeout-minutes: 5
 
     - name: Build frontend
@@ -200,8 +216,22 @@ landeployer.exe
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: landeployer-ui/package-lock.json
+
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('landeployer-backend/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Cache npm packages
+      uses: actions/cache@v3
+      with:
+        path: landeployer-ui/node_modules
+        key: ${{ runner.os }}-npm-${{ hashFiles('landeployer-ui/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
 
     - name: Install Python dependencies
       run: |
@@ -214,7 +244,7 @@ landeployer.exe
     - name: Install Node.js dependencies
       run: |
         cd landeployer-ui
-        npm install
+        npm ci
       timeout-minutes: 5
 
     - name: Build frontend
