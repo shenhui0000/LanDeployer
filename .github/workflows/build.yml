@@ -211,9 +211,12 @@ jobs:
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         files: |
-          artifacts/*/landeployer-python-linux-x86_64.tar.gz
-          artifacts/*/landeployer-python-darwin-arm64.tar.gz
+          artifacts/landeployer-python-linux-x86_64/*
+          artifacts/landeployer-python-darwin-arm64/*
         generate_release_notes: true
         name: Release ${{ env.VERSION }}
+        fail_on_unmatched_files: false
