@@ -74,6 +74,10 @@ jobs:
         npm run build
       timeout-minutes: 5
 
+    - name: Create data directory
+      run: |
+        mkdir -p landeployer-backend/data
+
     - name: Create PyInstaller spec
       run: |
         cd landeployer-backend
